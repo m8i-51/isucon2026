@@ -28,6 +28,8 @@ Linux ネイティブの Docker（Desktop ではない）では、ホストか�
 - Docker Desktop または OrbStack（Compose v2 付き）。後述の参考結果は Docker Desktop 29.9.3 です。
 - Docker の Linux VM に、目安として CPU 8、メモリ 10GB 以上、ディスク 25GB 以上。ホスト 16GB 以上を推奨します。
 - ホストに Go **1.26.5**（`mise.toml` と同じ）。[mise](https://mise.jdx.dev/) で入れるのが簡単です。datagen はホストで実行し、ベンチは後述のとおり Linux バイナリをコンテナ内で走らせます。
+  - mise を使っている場合、クローンした直後はリポジトリルートで一度 `mise trust` が必要です。そのあと `go version` が `go1.26.5` と出ることを確認してください。
+  - `mise.toml` には Python の venv 設定もあるため、`no venv found` という警告が出ることがあります。この手順では無視してかまいません（スモークはシステムの `python3` を使います）。ローカル起動だけなら `mise install` で全ツールを入れる必要はありません。
 - スモーク用の `python3`（標準ライブラリのみ）。
 - `*.127.0.0.1.nip.io` が解決できること。できないときは `/etc/hosts` に次を足します。
 
@@ -40,6 +42,8 @@ AWS・Packer・Pulumi は使いません。`make ami` は課金が発生する�
 ## 構成とリソース
 
 サービス（`compose.yaml`、プロジェクト名 `isureal-dev`）:
+
+`compose.yaml` に `name: isureal-dev` があるため、ディレクトリ名が違ってもプロジェクト名、ネットワーク名、イメージ名（`isureal-dev-router`）、Router の IP（`172.28.10.2`）は変わりません。すでに同じプロジェクトが動いているとポート 18090 などで衝突します。公式リポジトリの clone などを先に動かしている場合は、そちらで `docker compose down` してから起動してください。
 
 | コンテナ | 役割 | 公式既定 | この override |
 |---|---|---|---|
@@ -108,7 +112,8 @@ python3 deploy/dev/smoke.py
 ./scripts/local-mac-bench.sh
 # または手で:
 #   mkdir -p bin
-#   GOOS=linux GOARCH=$(go env GOARCH) CGO_ENABLED=0 go -C bench build -o bin/bench-linux
+#   # go -C は bench/ をカレントにするので、出力先はリポジトリルートの $PWD から書く
+#   GOOS=linux GOARCH=$(go env GOARCH) CGO_ENABLED=0 go -C bench build -o "$PWD/bin/bench-linux"
 #   docker compose --profile bench run --rm --no-deps bench
 # 進捗は stderr、結果 JSON は stdout。-scale は datagen と揃える（既定 small）。
 # ターゲットは http://172.28.10.2:8080、Host は app.127.0.0.1.nip.io。

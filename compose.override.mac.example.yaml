@@ -14,8 +14,9 @@
 #
 #    ベンチは Linux 向けにクロスコンパイルしてから、このプロファイルで回す:
 #      mkdir -p bin
-#      GOOS=linux GOARCH=$(go env GOARCH) CGO_ENABLED=0 go -C bench build -o bin/bench-linux
+#      GOOS=linux GOARCH=$(go env GOARCH) CGO_ENABLED=0 go -C bench build -o "$PWD/bin/bench-linux"
 #      docker compose --profile bench run --rm --no-deps bench
+#    go -C は bench/ をカレントにするので、出力先は $PWD（リポジトリルート）から書く。
 #    または scripts/local-mac-bench.sh を使う。
 #    Apple Silicon なら GOARCH=arm64、Intel Mac や linux/amd64 なら amd64。
 #    Linux ネイティブの Docker（Desktop ではない）では、ホストから公式どおり

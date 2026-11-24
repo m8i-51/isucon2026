@@ -24,9 +24,22 @@ case "$(uname -m)" in
     ;;
 esac
 
-mkdir -p bin
-echo "building linux/${goarch} bench -> bin/bench-linux" >&2
-GOOS=linux GOARCH="$goarch" CGO_ENABLED=0 go -C bench build -o bin/bench-linux
+# go -C bench は bench/ をカレントにするので、出力先はリポジトリルートからの絶対パスにする。
+# 相対パス bin/bench-linux だと bench/bin/bench-linux に落ち、compose がマウントする
+# ルートの bin/bench-linux が存在せず、Docker がディレクトリを作って実行に失敗する。
+out="$root/bin/bench-linux"
+mkdir -p "$root/bin"
+if [[ -d "$out" ]]; then
+  echo "removing leftover directory $out (created by a previous failed docker mount)" >&2
+  rmdir "$out" 2>/dev/null || rm -rf "$out"
+fi
+
+echo "building linux/${goarch} bench -> $out" >&2
+GOOS=linux GOARCH="$goarch" CGO_ENABLED=0 go -C bench build -o "$out"
+if [[ ! -f "$out" || -d "$out" ]]; then
+  echo "bench binary was not written to $out" >&2
+  exit 1
+fi
 
 # 進捗は stderr、結果 JSON は stdout。-scale は datagen と同じにすること（既定 small）。
 docker compose --profile bench run --rm --no-deps bench "$@"
