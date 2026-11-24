@@ -3,6 +3,16 @@
 ISUCON2026 の問題アプリケーション「ISUReal」、ベンチマーカー、競技環境の構築コードを収録しています。
 ISUReal は、asia、europe、america の3地域で写真を共有する SNS です。
 
+## このフォークについて
+
+これは [isucon/isucon2026](https://github.com/isucon/isucon2026) の**非公式**フォークです。公式リポジトリではありません。
+
+macOS の Docker Desktop でローカルに立ててベンチを通すための追加資料だけを入れています。公式の `compose.yaml` や問題アプリのコードは変更していません。
+
+- 手順と理由: [docs/local-mac.md](docs/local-mac.md)
+- 上書き設定の例: [`compose.override.mac.example.yaml`](compose.override.mac.example.yaml)（使うときは `compose.override.yaml` にコピーする）
+- ネットワーク内からベンチを回すスクリプト: [`scripts/local-mac-bench.sh`](scripts/local-mac-bench.sh)
+
 - [ISUCON2026 当日マニュアル](https://gist.github.com/whywaita/17f3ab1a8c1b7585c571f4f8afe5f531)
 
 ## ISUCON2026 で使用した競技環境

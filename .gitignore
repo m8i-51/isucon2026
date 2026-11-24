@@ -58,3 +58,9 @@ provisioning/aws/supervisor/Pulumi.*.yaml
 # Local agent workspace
 .whywaita/
 .worktrees/
+
+# Local compose override (copy from compose.override.mac.example.yaml)
+compose.override.yaml
+
+# Cross-compiled bench binary for in-network runs
+bin/

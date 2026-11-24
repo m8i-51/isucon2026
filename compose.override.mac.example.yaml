@@ -1,0 +1,59 @@
+# macOS の Docker Desktop 向けのローカル専用上書き設定。
+# 公式の compose.yaml は変更しない。使うときはリポジトリルートで次を実行する:
+#   cp compose.override.mac.example.yaml compose.override.yaml
+# Compose が compose.override.yaml を自動で読み込む。
+# このファイル自体はコミットしない（.gitignore 済み）。
+#
+# 1) ポート公開: Docker Desktop の com.docker.backend は 127.0.0.1:18090 を
+#    Listen し、待ち行列はホストの kern.ipc.somaxconn（既定 128）に縛られる。
+#    ベンチの最終チェックは 64 並行に加え、負荷中の通知ストリームが残るため、
+#    ホスト経由だと "dial tcp 127.0.0.1:18090: connect: connection reset by peer"
+#    で失格（スコア 0）になりやすい。compose の edge ネット内から HAProxy
+#    （172.28.10.2:8080）へ当てると、この userland プロキシを避ける。
+#    実測ではネット内の 1024 本バーストは成功し、ホストからの 256 本は RST した。
+#
+#    ベンチは Linux 向けにクロスコンパイルしてから、このプロファイルで回す:
+#      mkdir -p bin
+#      GOOS=linux GOARCH=$(go env GOARCH) CGO_ENABLED=0 go -C bench build -o bin/bench-linux
+#      docker compose --profile bench run --rm --no-deps bench
+#    または scripts/local-mac-bench.sh を使う。
+#    Apple Silicon なら GOARCH=arm64、Intel Mac や linux/amd64 なら amd64。
+#    Linux ネイティブの Docker（Desktop ではない）では、ホストから公式どおり
+#    `go -C bench run .` で足りることが多い。この override は主に Docker Desktop 向け。
+#
+# 2) リソース: 公式 compose 既定（app 1 CPU / 1GiB、db 2 CPU / 2GiB）は
+#    競技 VM（2 vCPU / 4GiB）より細い。Docker Desktop では 1.0 CPU クォータと
+#    仮想化オーバーヘッドが重なり、初期実装のまま終盤 5 秒でエラー率 10% を
+#    超えやすかった。以下は競技の形に近づけつつ、メモリ 24GB 級のホストでも
+#    収まる範囲。
+#
+# bench プロファイルは普通の `docker compose up` には乗らない。
+
+services:
+  app-asia:
+    cpus: 2.0
+    mem_limit: 2g
+  app-europe:
+    cpus: 2.0
+    mem_limit: 2g
+  app-america:
+    cpus: 2.0
+    mem_limit: 2g
+  db-asia:
+    cpus: 2.0
+    mem_limit: 3g
+
+  bench:
+    image: isureal-dev-router
+    profiles: ["bench"]
+    networks:
+      - edge
+    volumes:
+      - ./bin/bench-linux:/isureal-bench:ro
+    working_dir: /tmp
+    entrypoint: ["/isureal-bench"]
+    command:
+      - -target
+      - http://172.28.10.2:8080
+      - -host
+      - app.127.0.0.1.nip.io
